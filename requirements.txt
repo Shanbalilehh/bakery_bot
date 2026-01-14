@@ -1,0 +1,20 @@
+fastapi>=0.111.0
+uvicorn>=0.30.0
+sqlalchemy>=2.0.30
+psycopg2-binary>=2.9.9
+redis>=5.0.4
+pydantic>=2.7.1
+pydantic-settings>=2.2.1
+python-dotenv>=1.0.1
+# AI / LangChain
+langchain>=0.2.0
+langchain-community>=0.2.0
+langchain-openai>=0.1.7  # Still needed to connect to DeepSeek (it uses OpenAI protocol)
+langchain-huggingface>=0.0.3 # NEW: For free local embeddings
+sentence-transformers>=2.2.2 # NEW: Required for HuggingFace
+langchain-text-splitters>=0.2.0
+openai>=1.30.0
+tiktoken>=0.7.0
+faiss-cpu>=1.8.0
+twilio>=9.0.0
+python-multipart>=0.0.9
