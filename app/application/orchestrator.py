@@ -16,14 +16,26 @@ BUSINESS_CLOSE = time(6, 0) # 6:00 PM
 # Frustration Triggers (Requirement 3.1)
 FRUSTRATION_KEYWORDS = ["molesto", "no contestan", "problema", "pesimo", "nadie responde", "queja", "mal servicio"]
 
-BLOCKED_NUMBERS = {"+593999999999", "+593888888888"} # Add family numbers here
+BLOCKED_NUMBERS = {"+593985445631", "+593967550507"} # Add family numbers here
 PAYMENT_INFO = """
-🍰 *Datos de Pago:*
-Banco: Pichincha
-Cuenta: Ahorros 123456789
-Nombre: En-Dulce
-Cedula: 1717171717
-_Por favor envíe el comprobante aquí._
+## ✨ Formas de Pago – En Dulce
+
+### 💛 Opción 1 – Banco Pichincha
+
+* **Cuenta Corriente:** 2100038192
+* **Titular:** Franklin Utreras
+* **CI:** 1715211676
+* **Teléfono:** 0992788266
+* **Correo:** [en.dulce.ventas@gmail.com](mailto:en.dulce.ventas@gmail.com)
+
+---
+
+### 💚 Opción 2 – Produbanco
+
+* **Cuenta de Ahorros:** 12095108731
+* **Titular:** Carlos Peña
+* **CI:** 1716869886
+* **Correo:** [en.dulce.ventas@gmail.com](mailto:en.dulce.ventas@gmail.com)
 """
 
 class Orchestrator:
