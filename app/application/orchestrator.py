@@ -55,10 +55,10 @@ class Orchestrator:
             return "" # Ignore completely (Bot stays silent)
         
         # 2. AFTER-HOURS CHECK (Requirement 3.3)
-        if not self._is_open():
-             return ("En este momento no estamos atendiendo.\n\n"
-                     "Mañana con gusto retomamos su mensaje 😊\n"
-                     "Si desea, puede dejarnos su pedido y lo confirmamos apenas abramos.")
+        #if not self._is_open():
+        #     return ("En este momento no estamos atendiendo.\n\n"
+        #             "Mañana con gusto retomamos su mensaje 😊\n"
+        #             "Si desea, puede dejarnos su pedido y lo confirmamos apenas abramos.")
 
         # 3. FRUSTRATION CHECK (Requirement 3.1)
         if any(word in message_text.lower() for word in FRUSTRATION_KEYWORDS):
