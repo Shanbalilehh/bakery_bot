@@ -1,17 +1,22 @@
 import time
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from fastapi.requests import Request
+from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from sqlalchemy.exc import OperationalError  # <-- Import this
 from app.core.config import settings
 
 # 1. Infrastructure & Domain Imports
-from app.infrastructure.database import engine, Base
+from app.domain.models import Order
+from app.infrastructure.database import SessionLocal, engine, Base
 from app.infrastructure.openai_service import OpenAIService
 from app.infrastructure.repositories.order_repository import PostgresOrderRepository
 from app.application.orchestrator import Orchestrator
 from app.interfaces import twilio_webhook
 
 app = FastAPI(title=settings.PROJECT_NAME)
+templates = Jinja2Templates(directory="app/templates")
 
 # ---------------------------------------------------------
 # DATABASE CONNECTION (With Retry Logic)
@@ -61,3 +66,13 @@ def health_check():
 async def test_chat(payload: WhatsAppPayload):
     response_text = await app.state.orchestrator.process_message(payload.user_id, payload.message)
     return {"response": response_text}
+
+@app.get("/admin/orders", response_class=HTMLResponse)
+def read_orders(request: Request):
+    db = SessionLocal()
+    try:
+        # Get latest 20 orders
+        orders = db.query(Order).order_by(Order.created_at.desc()).limit(20).all()
+        return templates.TemplateResponse("dashboard.html", {"request": request, "orders": orders})
+    finally:
+        db.close()

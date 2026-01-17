@@ -121,5 +121,51 @@ class StateManager:
         print(f"❌ Redis Error: {e}. Switching to RAM mode.")
         self.redis_available = False
 
+
+       # --- NEW: CHAT HISTORY MANAGEMENT ---
+    def add_to_history(self, user_id: str, role: str, content: str):
+        """Saves message to a sliding window list (Last 6 messages)."""
+        key = f"user:{user_id}:history"
+        msg_entry = json.dumps({"role": role, "content": content})
+        
+        if self.redis_available:
+            try:
+                # Push to right, trim to keep last 6
+                pipe = self.redis.pipeline()
+                pipe.rpush(key, msg_entry)
+                pipe.ltrim(key, -6, -1) 
+                pipe.expire(key, self.ttl)
+                pipe.execute()
+            except RedisError:
+                pass # Fail silently for history
+        
+        # RAM Fallback (Optional for history, but good consistency)
+        if key not in self._memory_store:
+            self._memory_store[key] = []
+        self._memory_store[key].append(msg_entry)
+        if len(self._memory_store[key]) > 6:
+            self._memory_store[key] = self._memory_store[key][-6:]
+
+    def get_history(self, user_id: str) -> str:
+        """Returns formatted history string for the AI prompt."""
+        key = f"user:{user_id}:history"
+        messages = []
+        
+        if self.redis_available:
+            try:
+                messages = self.redis.lrange(key, 0, -1)
+            except RedisError:
+                messages = self._memory_store.get(key, [])
+        else:
+            messages = self._memory_store.get(key, [])
+
+        # Format: "User: ... \n AI: ..."
+        formatted = []
+        for m in messages:
+            data = json.loads(m)
+            formatted.append(f"{data['role']}: {data['content']}")
+        
+        return "\n".join(formatted)
+
 # Global Instance
 state_manager = StateManager()

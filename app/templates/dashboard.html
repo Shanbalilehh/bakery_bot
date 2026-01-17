@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>En-Dulce | Admin Pedidos</title>
+    <style>
+        body {
+            font-family: -apple-system, sans-serif;
+            background: #f4f4f9;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #d35400;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .confirmed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .refresh {
+            display: block;
+            margin: 20px auto;
+            padding: 10px 20px;
+            background: #d35400;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 5px;
+            width: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🍰 Pedidos En-Dulce</h1>
+        <a href="/admin/orders" class="refresh">Actualizar</a>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Teléfono</th>
+                    <th>Detalles</th>
+                    <th>Total</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.created_at.strftime('%d/%m %H:%M') }}</td>
+                    <td>
+                        <a href="https://wa.me/{{ order.user_phone }}" target="_blank">
+                            {{ order.user_phone }}
+                        </a>
+                    </td>
+                    <td>
+                        {% for item in order.items %}
+                        • {{ item.quantity }}x {{ item.product }}<br>
+                        {% endfor %}
+                    </td>
+                    <td>{{ order.total_price }}</td>
+                    <td><span class="badge confirmed">{{ order.status }}</span></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+
+</html>

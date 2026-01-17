@@ -11,7 +11,7 @@ from langchain_text_splitters import CharacterTextSplitter
 from langchain_core.messages import SystemMessage, HumanMessage
 
 from app.core.config import settings
-from app.domain.prompts import SYSTEM_PROMPT, INTENT_PROMPT
+from app.domain.prompts import SYSTEM_PROMPT, INTENT_PROMPT, EXTRACTION_PROMPT
 from app.interfaces.IAiService import IAiService
 
 # --- NEW PROMPT FOR JSON EXTRACTION ---
@@ -73,58 +73,44 @@ class OpenAIService(IAiService):
             print(f"⚠️ Warning: Could not load menu.md. Error: {e}")
 
     async def get_intent(self, user_message: str) -> str:
-        messages = [
-            HumanMessage(content=INTENT_PROMPT.format(message=user_message))
-        ]
+        messages = [HumanMessage(content=INTENT_PROMPT.format(message=user_message))]
         response = await self.llm.ainvoke(messages)
         return response.content.strip().lower()
 
-    async def generate_response(self, user_message: str, intent: str) -> str:
+    async def generate_response(self, user_message: str, intent: str, history: str = "") -> str:
         context = ""
-        
         if intent in ["menu_query", "order_intent"] and self.vector_store:
             docs = self.vector_store.similarity_search(user_message, k=2)
             context = "\n".join([d.page_content for d in docs])
         
-        formatted_system_prompt = SYSTEM_PROMPT.format(context=context)
+        # We append history to the prompt so the bot knows what happened before
+        full_system_prompt = SYSTEM_PROMPT.format(context=context) + f"\n\nCONVERSATION HISTORY:\n{history}"
         
         messages = [
-            SystemMessage(content=formatted_system_prompt),
+            SystemMessage(content=full_system_prompt),
             HumanMessage(content=user_message)
         ]
-        
         response = await self.llm.ainvoke(messages)
         return response.content
 
     # --- NEW METHOD: EXTRACT JSON ITEMS ---
-    async def extract_order_items(self, user_message: str) -> list:
-        """
-        Extracts structured data from text using RAG to map products.
-        Returns: [{"product": "Cake", "quantity": 1}, ...]
-        """
+    async def extract_order_items(self, user_message: str, history: str = "") -> list:
         context = ""
-        # 1. Retrieve menu context to help the AI map "Negra" to "Torta Negra"
         if self.vector_store:
             docs = self.vector_store.similarity_search(user_message, k=3)
             context = "\n".join([d.page_content for d in docs])
 
-        # 2. Format Prompt
-        prompt_content = EXTRACTION_PROMPT.format(context=context, user_input=user_message)
+        # We feed the history into the Context part of the prompt
+        combined_context = f"{context}\n\nRECENT CHAT:\n{history}"
         
+        prompt_content = EXTRACTION_PROMPT.format(context=combined_context, user_input=user_message)
         messages = [HumanMessage(content=prompt_content)]
         
-        # 3. Call AI
         try:
             response = await self.llm.ainvoke(messages)
-            raw_content = response.content
-            
-            # 4. Clean and Parse JSON
-            cleaned_json = self._clean_json_response(raw_content)
+            cleaned_json = self._clean_json_response(response.content)
             items = json.loads(cleaned_json)
-            
-            if isinstance(items, list):
-                return items
-            return []
+            return items if isinstance(items, list) else []
         except Exception as e:
             print(f"❌ Extraction Error: {e}")
             return []
