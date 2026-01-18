@@ -50,8 +50,11 @@ class Orchestrator:
         return BUSINESS_OPEN <= now <= BUSINESS_CLOSE
 
     async def process_message(self, user_id: str, message_text: str) -> str:
+        print(f"\n[ORCHESTRATOR] Processing message from {user_id}: '{message_text}'")
+        
         # 1. BLOCKLIST CHECK
         if user_id in BLOCKED_NUMBERS:
+            print(f"[ORCHESTRATOR] User {user_id} is BLOCKED")
             return "" # Ignore completely (Bot stays silent)
         
         # 2. AFTER-HOURS CHECK (Requirement 3.3)
@@ -62,54 +65,67 @@ class Orchestrator:
 
         # 3. FRUSTRATION CHECK (Requirement 3.1)
         if any(word in message_text.lower() for word in FRUSTRATION_KEYWORDS):
+            print(f"[ORCHESTRATOR] Frustration detected in message")
             return await self._trigger_handoff(user_id, "Cliente molesto detectado")
 
         # 2. LOAD STATE & HISTORY
         current_state = state_manager.get_state(user_id)
         context = state_manager.get_context(user_id)
         history = state_manager.get_history(user_id)
+        print(f"[ORCHESTRATOR] State: {current_state}, Context: {context}, History: {history}")
 
         # 3. HUMAN DELAY (Only for new conversations or long breaks)
         # If history is empty, it's a "First Message"
         if not history:
+            print(f"[ORCHESTRATOR] First message detected, adding human delay...")
             await asyncio.sleep(random.uniform(2.0, 4.0))
 
         # 4. INTENT DETECTION
         intent = await self.ai_service.get_intent(message_text)
-        print(f"[{user_id}] State: {current_state} | Intent: {intent}")
+        print(f"[ORCHESTRATOR] [{user_id}] State: {current_state} | Intent: {intent}")
 
         response = ""
 
         # --- STATE MACHINE ---
         if current_state == STATE_ORDERING:
+            print(f"[ORCHESTRATOR] Handling active ordering...")
             response = await self._handle_active_ordering(user_id, message_text, intent, context, history)
         
         elif current_state == STATE_CONFIRMING:
+            print(f"[ORCHESTRATOR] Handling confirmation...")
             response = await self._handle_confirmation(user_id, message_text, context)
 
         # GLOBAL / IDLE
         elif intent == "handoff":
+            print(f"[ORCHESTRATOR] Handoff intent detected...")
             response = await self._trigger_handoff(user_id, "Solicitud directa")
             # TODO: Here we would ping the Admin Dashboard technically
         
         elif "cancel" in message_text.lower():
+            print(f"[ORCHESTRATOR] Cancel detected...")
             state_manager.clear_session(user_id)
             response = "Listo veci, pedido cancelado."
 
         elif intent == "order_intent":
+            print(f"[ORCHESTRATOR] Order intent detected, entering ORDERING state...")
             state_manager.set_state(user_id, STATE_ORDERING)
             response = await self._handle_active_ordering(user_id, message_text, intent, context, history)
             
         else:
             # General Chat / Menu Query
+            print(f"[ORCHESTRATOR] General chat/menu query, generating response...")
             response = await self.ai_service.generate_response(message_text, intent, history)
 
         # 5. SAVE HISTORY (Update memory for next turn)
         # We don't save the history if the bot was silent (blocked)
         if response:
+            print(f"[ORCHESTRATOR] Saving to history: User: {message_text}, AI: {response}")
             state_manager.add_to_history(user_id, "User", message_text)
             state_manager.add_to_history(user_id, "AI", response)
+        else:
+            print(f"[ORCHESTRATOR] Response is empty, not saving to history")
 
+        print(f"[ORCHESTRATOR] Returning response: '{response}'\n")
         return response
 
     # ------------------------------------------------------------------
