@@ -27,6 +27,7 @@ pip-wheel-metadata/
 venv/
 .env/
 .env.*
+.env
 !.env.example
 
 ############################################
