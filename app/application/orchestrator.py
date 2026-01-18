@@ -16,7 +16,7 @@ BUSINESS_CLOSE = time(6, 0) # 6:00 PM
 # Frustration Triggers (Requirement 3.1)
 FRUSTRATION_KEYWORDS = ["molesto", "no contestan", "problema", "pesimo", "nadie responde", "queja", "mal servicio"]
 
-BLOCKED_NUMBERS = {"+593985445631", "+593967550507"} # Add family numbers here
+BLOCKED_NUMBERS = {"+593967550507"} # Add family numbers here
 PAYMENT_INFO = """
 ## ✨ Formas de Pago – En Dulce
 
