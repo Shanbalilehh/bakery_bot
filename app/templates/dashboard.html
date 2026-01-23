@@ -42,10 +42,6 @@
             color: #0074d9;
         }
 
-        .pickup {
-            color: #2ecc40;
-        }
-
         .meta-info {
             font-size: 0.9em;
             color: #666;
@@ -101,22 +97,26 @@
                             {% endfor %}
                         </td>
                         <td>
-                            {% if order.items[0].get('modifiers') %}
-                            {% set mods = order.items[0].get('modifiers') %}
+                            {% if order.items and order.items|length > 0 %}
+                            {% set mods = order.items[0].get('modifiers', {}) %}
                             {% if mods.flavor %}<span class="meta-info">🍦 {{ mods.flavor }}</span><br>{% endif %}
                             {% if mods.dedication %}<span class="meta-info">✍️ "{{ mods.dedication }}"</span><br>{%
                             endif %}
                             {% else %}
-                            <span style="color:#ccc">-</span>
+                            -
                             {% endif %}
                         </td>
                         <td>
+                            {% if order.items and order.items|length > 0 %}
                             {% set delivery = order.items[0].get('delivery_info', {}) %}
                             {% if delivery.method == 'delivery' %}
                             <span class="badge" style="background: #e7f5ff; color: #0074d9;">🛵 Domicilio</span><br>
                             <small>{{ delivery.address }}</small>
                             {% elif delivery.method == 'pickup' %}
                             <span class="badge" style="background: #eaffea; color: #2ecc40;">🏪 Retiro</span>
+                            {% else %}
+                            -
+                            {% endif %}
                             {% else %}
                             -
                             {% endif %}

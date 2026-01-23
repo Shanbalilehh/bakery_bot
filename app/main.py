@@ -80,28 +80,43 @@ async def test_chat(payload: WhatsAppPayload):
     response_text = await app.state.orchestrator.process_message(payload.user_id, payload.message)
     return {"response": response_text}
 
+MENU_DB = [
+    {"name": "Torta de Chocolate", "price": 20, "is_active": True},
+    {"name": "Cheesecake", "price": 25, "is_active": True},
+    {"name": "Desayuno Clásico", "price": 8, "is_active": True},
+    {"name": "Desayuno Especial", "price": 12, "is_active": True},
+    {"name": "Humita", "price": 1.50, "is_active": True},
+]
+
 # ---------------------------------------------------------
 # ADMIN DASHBOARD ROUTES
 # ---------------------------------------------------------
 
 @app.get("/admin/orders", response_class=HTMLResponse)
 def read_orders(request: Request):
-    orders = request.app.state.order_repo.get_all_orders(limit=50)
-    return templates.TemplateResponse("dashboard.html", {"request": request, "orders": orders})
+    # Use the connection from the request state or create a new session if safer
+    db = SessionLocal()
+    try:
+        orders = db.query(Order).order_by(Order.created_at.desc()).limit(20).all()
+        return templates.TemplateResponse("dashboard.html", {"request": request, "orders": orders})
+    finally:
+        db.close()
 
 @app.get("/admin/menu", response_class=HTMLResponse)
 async def admin_menu(request: Request):
-    # TODO: Connect this to a real Database table 'products'
-    # For now, we mock it or read from a global variable to simulate "Live" changes
-    products = [
-        {"name": "Torta de Chocolate", "price": 20, "is_active": True},
-        {"name": "Cheesecake", "price": 25, "is_active": True},
-        {"name": "Desayuno Clásico", "price": 8, "is_active": False},
-    ]
-    return templates.TemplateResponse("menu_admin.html", {"request": request, "products": products})
+    # Read from the GLOBAL variable, not a local one
+    return templates.TemplateResponse("menu_admin.html", {"request": request, "products": MENU_DB})
 
 @app.post("/admin/menu/toggle")
 async def toggle_product(product_name: str = Form(...)):
     print(f"🔄 Toggling availability for: {product_name}")
-    # Logic to update DB goes here in the future
+    
+    # 1. Find the product in our Global List and flip the boolean
+    for product in MENU_DB:
+        if product["name"] == product_name:
+            product["is_active"] = not product["is_active"] # FLIP TRUE/FALSE
+            print(f"✅ New status for {product_name}: {product['is_active']}")
+            break
+    
+    # 2. Redirect back to menu to see the change
     return RedirectResponse(url="/admin/menu", status_code=303)

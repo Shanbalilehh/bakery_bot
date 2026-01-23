@@ -58,7 +58,7 @@ class Orchestrator:
         # Priority: Check for "Cancel" globally
         if "cancel" in message_text.lower():
             state_manager.clear_session(user_id)
-            return "Listo veci, pedido cancelado."
+            return "Listo, pedido cancelado."
 
         if current_state == STATE_ORDERING:
             response = await self._handle_active_ordering(user_id, message_text, intent, context, history)
@@ -196,9 +196,9 @@ class Orchestrator:
             if success:
                 state_manager.clear_session(user_id)
                 self.notifier.notify_admin_new_order(user_id, final_order_data)
-                return f"¡Listo veci! Su pedido está confirmado 🎉.\n\n{PAYMENT_INFO}"
+                return f"Listo, su pedido está confirmado 🎉.\n\n{PAYMENT_INFO}"
             else:
-                return "Uy veci, hubo un error guardando el pedido. Intente de nuevo."
+                return "Uy, hubo un error guardando el pedido. Intente de nuevo."
 
         # 2. If user provides missing info (Address/Method) logic
         # We re-run extraction to see if they answered the Gate question
@@ -218,7 +218,7 @@ class Orchestrator:
 
         # 3. If user says NO or wants changes
         state_manager.set_state(user_id, STATE_ORDERING)
-        return "Entendido veci, ¿qué desea cambiar o agregar?"
+        return "Entendido, ¿qué desea cambiar o agregar?"
 
     def _generate_confirmation_summary(self, context):
         items = context.get("items", [])
@@ -226,7 +226,7 @@ class Orchestrator:
         delivery = context.get("delivery_info", {})
 
         if not items:
-            return "No tengo nada anotado veci. ¿Qué desea pedir?"
+            return "No tengo nada anotado. ¿Qué desea pedir?"
         
         # Build Summary
         summary = "📝 *Resumen del Pedido:*\n"
