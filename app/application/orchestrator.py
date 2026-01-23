@@ -92,28 +92,46 @@ class Orchestrator:
     async def _handle_active_ordering(self, user_id, message_text, intent, context, history):
         triggers = ["listo", "eso es todo", "confirmar", "ya", "gracias", "fin"]
         
-        # 1. EXTRACT DATA (Items + Modifiers + Delivery)
+        # 1. EXTRACT DATA
         extraction_data = await self.ai_service.extract_order_items(message_text, history)
         new_items = extraction_data.get("items", [])
         new_modifiers = extraction_data.get("modifiers", {})
         new_delivery = extraction_data.get("delivery_info", {})
 
-        # 2. UPDATE CONTEXT
-        # Merge items
+        # 2. UPDATE CART (The "Smart" Logic)
         current_items = context.get("items", [])
-        current_items.extend(new_items)
         
-        # Merge modifiers (Flavor, Notes) - Overwrite if new ones provided
-        current_modifiers = context.get("modifiers", {})
-        for k, v in new_modifiers.items():
-            if v: current_modifiers[k] = v
+        for item in new_items:
+            action = item.get("action", "add")
+            product_name = item.get("product", "").lower()
             
-        # Merge Delivery Info
-        current_delivery = context.get("delivery_info", {})
-        for k, v in new_delivery.items():
-            if v: current_delivery[k] = v
+            if action == "add":
+                # Check if exists to merge, or append? Simple append for now.
+                current_items.append(item)
+                
+            elif action == "remove":
+                # Filter out items that match the product name (fuzzy match)
+                current_items = [i for i in current_items if product_name not in i.get("product", "").lower()]
+                
+            elif action == "update":
+                # Find and update quantity
+                found = False
+                for i in current_items:
+                    if product_name in i.get("product", "").lower():
+                        i["quantity"] = item.get("quantity", 1)
+                        found = True
+                # If not found, assume it's an add
+                if not found:
+                    current_items.append(item)
 
-        # Save back to Redis/State
+        # Update Modifiers & Delivery (Merge)
+        current_modifiers = context.get("modifiers", {})
+        current_modifiers.update({k: v for k, v in new_modifiers.items() if v}) # Only update if not null
+        
+        current_delivery = context.get("delivery_info", {})
+        current_delivery.update({k: v for k, v in new_delivery.items() if v})
+
+        # Save Context
         updated_context = {
             "items": current_items,
             "modifiers": current_modifiers,
@@ -121,24 +139,29 @@ class Orchestrator:
         }
         state_manager.update_context(user_id, updated_context)
 
-        # 3. TRANSITION CHECK
+        # 3. TRANSITION & RESPONSE
         if any(t == message_text.lower().strip() for t in triggers):
             state_manager.set_state(user_id, STATE_CONFIRMING)
             return self._generate_confirmation_summary(updated_context)
 
-        # 4. RESPONSE GENERATION
+        # Dynamic Response based on Action
         if new_items:
-            added_text = ", ".join([f"{item['quantity']}x {item['product']}" for item in new_items])
-            return f"✅ Anotado: {added_text}.\n\n(¿Algo más? ¿Algún sabor en especial?)"
+            action = new_items[0].get("action", "add")
+            if action == "remove":
+                return f"👍 Listo, quitado del pedido. ¿Algo más?"
+            elif action == "update":
+                return f"👍 Corregido: {new_items[0]['quantity']}x {new_items[0]['product']}. ¿Algo más?"
+            else:
+                added_text = ", ".join([f"{item['quantity']}x {item['product']}" for item in new_items])
+                return f"✅ Anotado: {added_text}.\n\n(¿Algo más? ¿Algún sabor en especial?)"
         
-        elif new_modifiers.get("flavor") or new_modifiers.get("dedication"):
-            # Acknowledging metadata update
-            return f"Perfecto, anotado el detalle: {new_modifiers.get('flavor') or new_modifiers.get('dedication')} 👍."
+        elif new_modifiers:
+             return f"Perfecto, anotado el detalle. 👍"
 
         elif new_delivery.get("method"):
              return f"Entendido, será para {new_delivery['method']}. ¿Algo más?"
 
-        # If no strict data extracted, fall back to AI Chat (e.g. "What flavors do you have?")
+        # Fallback to AI Chat
         return await self.ai_service.generate_response(message_text, intent, history)
 
 

@@ -29,22 +29,22 @@ MENU CONTEXT:
 """
 
 # We inject these examples into the chat history dynamically or as part of the system prompt
-FEW_SHOT_EXAMPLES = """
-User: ¿A cómo está el cheesecake?
-Assistant: El cheesecake entero tiene un valor de $29 😊
-¿Desea hacer un pedido o reservar?
+# FEW_SHOT_EXAMPLES = """
+# User: ¿A cómo está el cheesecake?
+# Assistant: El cheesecake entero tiene un valor de $29 😊
+# ¿Desea hacer un pedido o reservar?
 
-User: ¿Qué venden?
-Assistant: Estos son los desayunos disponibles hoy:
-• Plaza del Teatro
-• Clásico
-• Especial
-¿Cuál le gustaría y para cuántas personas?
+# User: ¿Qué venden?
+# Assistant: Estos son los desayunos disponibles hoy:
+# • Plaza del Teatro
+# • Clásico
+# • Especial
+# ¿Cuál le gustaría y para cuántas personas?
 
-User: ¿Tienen torta de chocolate?
-Assistant: Sí, tenemos disponible hoy 😊
-¿Cuántas unidades le gustaría y para cuándo?
-"""
+# User: ¿Tienen torta de chocolate?
+# Assistant: Sí, tenemos disponible hoy 😊
+# ¿Cuántas unidades le gustaría y para cuándo?
+# """
 
 INTENT_PROMPT = """
 Classify the intent of this message.
@@ -55,20 +55,25 @@ Return ONLY the label.
 
 EXTRACTION_PROMPT = """
 You are an Order Extractor for a bakery.
-Analyze the USER INPUT and extracted structured data.
+Analyze the USER INPUT to modify the cart.
 
 MENU CONTEXT:
 {context}
 
 RULES:
-1. **Items**: Extract products mentioned. Use exact menu names if possible.
-2. **Modifiers**: Extract flavors, fillings, or specific requests (e.g., "chocolate flavor", "text: Happy Birthday").
-3. **Delivery**: Detect if the user wants "delivery" or "pickup".
-4. **Address**: Extract address if provided.
+1. **Items**: Identify products. Use exact menu names.
+2. **Action**: Determine if the user wants to 'add' (default), 'remove' (delete item), or 'update' (change quantity).
+   - "I want 2 cakes" -> action: "add"
+   - "Actually, only 1" -> action: "update", quantity: 1
+   - "Remove the cake" -> action: "remove"
+   - "No cake" -> action: "remove"
+3. **Modifiers**: Flavor, dedication text, delivery address.
 
 RETURN JSON FORMAT:
 {{
-  "items": [{{"product": "Name", "quantity": 1}}], 
+  "items": [
+      {{"product": "Name", "quantity": 1, "action": "add/remove/update"}}
+  ], 
   "modifiers": {{"flavor": null, "dedication": null, "notes": null}},
   "delivery_info": {{"method": "delivery/pickup/null", "address": null}}
 }}

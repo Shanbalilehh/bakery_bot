@@ -10,7 +10,9 @@ logger = logging.getLogger(__name__)
 async def whatsapp_webhook(
     request: Request,
     From: str = Form(...),
-    Body: str = Form(...)
+    Body: str = Form(...),
+    NumMedia: int = Form(0),  # NEW: Catch media count
+    MediaContentType0: str = Form(None) # NEW: Catch media type
 ):
     """
     Twilio Webhook endpoint.
@@ -22,6 +24,22 @@ async def whatsapp_webhook(
     print(f"From: {From}")
     print(f"Body: {Body}")
     
+    # ---------------------------------------------------------
+    # 1. AUDIO / MEDIA GUARDRAIL (Added)
+    # ---------------------------------------------------------
+    if NumMedia > 0:
+        print(f"⚠️ MEDIA DETECTED: {NumMedia} files. Type: {MediaContentType0}")
+        # Check if it is an audio file (voice note)
+        if MediaContentType0 and "audio" in MediaContentType0:
+            print("🚨 ALERT: Audio received (Not yet supported). Ignoring.")
+            # Polite refusal XML
+            xml_response = """<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Message>Mil disculpas veci, por el momento mi sistema no me deja escuchar audios 😔. ¿Me lo podría escribir? 🙏</Message>
+</Response>"""
+            return Response(content=xml_response, media_type="application/xml")
+    # ---------------------------------------------------------
+
     try:
         # Log the incoming request for debugging
         logger.info(f"📨 Twilio Webhook: From={From}, Body={Body}")
