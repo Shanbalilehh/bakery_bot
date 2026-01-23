@@ -1,6 +1,6 @@
 import time
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Form
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.requests import Request
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
@@ -12,6 +12,8 @@ from app.domain.models import Order
 from app.infrastructure.database import SessionLocal, engine, Base
 from app.infrastructure.openai_service import OpenAIService
 from app.infrastructure.repositories.order_repository import PostgresOrderRepository
+# NEW: Import Notification Service
+from app.infrastructure.notification_service import NotificationService
 from app.application.orchestrator import Orchestrator
 from app.interfaces import twilio_webhook
 
@@ -42,10 +44,21 @@ else:
 # COMPOSITION ROOT
 # ---------------------------------------------------------
 try:
+    # 1. Initialize Services
     ai_service = OpenAIService()
     order_repo = PostgresOrderRepository()
-    orchestrator_instance = Orchestrator(ai_service=ai_service, order_repo=order_repo)
+    notifier = NotificationService() # <--- NEW: Init Notifier
+    
+    # 2. Inject into Orchestrator
+    orchestrator_instance = Orchestrator(
+        ai_service=ai_service, 
+        order_repo=order_repo,
+        notifier=notifier # <--- NEW: Pass to Orchestrator
+    )
+    
     app.state.orchestrator = orchestrator_instance
+    app.state.order_repo = order_repo # Useful for admin routes
+    
 except Exception as e:
     print(f"❌ Error initializing services: {e}")
 
@@ -67,12 +80,28 @@ async def test_chat(payload: WhatsAppPayload):
     response_text = await app.state.orchestrator.process_message(payload.user_id, payload.message)
     return {"response": response_text}
 
+# ---------------------------------------------------------
+# ADMIN DASHBOARD ROUTES
+# ---------------------------------------------------------
+
 @app.get("/admin/orders", response_class=HTMLResponse)
 def read_orders(request: Request):
-    db = SessionLocal()
-    try:
-        # Get latest 20 orders
-        orders = db.query(Order).order_by(Order.created_at.desc()).limit(20).all()
-        return templates.TemplateResponse("dashboard.html", {"request": request, "orders": orders})
-    finally:
-        db.close()
+    orders = request.app.state.order_repo.get_all_orders(limit=50)
+    return templates.TemplateResponse("dashboard.html", {"request": request, "orders": orders})
+
+@app.get("/admin/menu", response_class=HTMLResponse)
+async def admin_menu(request: Request):
+    # TODO: Connect this to a real Database table 'products'
+    # For now, we mock it or read from a global variable to simulate "Live" changes
+    products = [
+        {"name": "Torta de Chocolate", "price": 20, "is_active": True},
+        {"name": "Cheesecake", "price": 25, "is_active": True},
+        {"name": "Desayuno Clásico", "price": 8, "is_active": False},
+    ]
+    return templates.TemplateResponse("menu_admin.html", {"request": request, "products": products})
+
+@app.post("/admin/menu/toggle")
+async def toggle_product(product_name: str = Form(...)):
+    print(f"🔄 Toggling availability for: {product_name}")
+    # Logic to update DB goes here in the future
+    return RedirectResponse(url="/admin/menu", status_code=303)

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>En-Dulce | Gestión Menú</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic">
+    <style>
+        body {
+            background: #f4f4f9;
+            padding: 20px;
+            font-family: -apple-system, sans-serif;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+        }
+
+        .switch {
+            display: inline-block;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .out-of-stock {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h2>📋 Gestión de Menú</h2>
+            <a href="/admin/orders" class="button warning">Volver a Pedidos</a>
+        </div>
+        <hr>
+
+        <div id="product-list">
+            {% for product in products %}
+            <div class="item-row {{ 'out-of-stock' if not product.is_active else '' }}">
+                <div>
+                    <strong>{{ product.name }}</strong>
+                    <br>
+                    <small>${{ product.price }}</small>
+                </div>
+                <div>
+                    <form action="/admin/menu/toggle" method="POST">
+                        <input type="hidden" name="product_name" value="{{ product.name }}">
+                        <button type="submit" class="button {{ 'error' if product.is_active else 'success' }} small">
+                            {{ 'Desactivar 🚫' if product.is_active else 'Activar ✅' }}
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+
+</html>

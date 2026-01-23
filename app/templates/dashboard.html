@@ -5,20 +5,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>En-Dulce | Admin Pedidos</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/picnic">
     <style>
         body {
-            font-family: -apple-system, sans-serif;
             background: #f4f4f9;
             padding: 20px;
+            font-family: -apple-system, sans-serif;
         }
 
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
+        .card {
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
         }
 
         h1 {
@@ -26,27 +26,11 @@
             text-align: center;
         }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-        }
-
-        th {
-            background-color: #f8f9fa;
-        }
-
         .badge {
             padding: 4px 8px;
             border-radius: 4px;
             font-size: 0.85em;
+            font-weight: bold;
         }
 
         .confirmed {
@@ -54,59 +38,95 @@
             color: #155724;
         }
 
-        .pending {
-            background: #fff3cd;
-            color: #856404;
+        .delivery {
+            color: #0074d9;
         }
 
-        .refresh {
-            display: block;
-            margin: 20px auto;
-            padding: 10px 20px;
+        .pickup {
+            color: #2ecc40;
+        }
+
+        .meta-info {
+            font-size: 0.9em;
+            color: #666;
+            font-style: italic;
+        }
+
+        .nav-btn {
             background: #d35400;
             color: white;
-            text-decoration: none;
-            text-align: center;
+            padding: 10px 20px;
             border-radius: 5px;
-            width: 100px;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
         }
     </style>
 </head>
 
 <body>
-    <div class="container">
-        <h1>🍰 Pedidos En-Dulce</h1>
-        <a href="/admin/orders" class="refresh">Actualizar</a>
-        <table>
-            <thead>
-                <tr>
-                    <th>Fecha</th>
-                    <th>Teléfono</th>
-                    <th>Detalles</th>
-                    <th>Total</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in orders %}
-                <tr>
-                    <td>{{ order.created_at.strftime('%d/%m %H:%M') }}</td>
-                    <td>
-                        <a href="https://wa.me/{{ order.user_phone }}" target="_blank">
-                            {{ order.user_phone }}
-                        </a>
-                    </td>
-                    <td>
-                        {% for item in order.items %}
-                        • {{ item.quantity }}x {{ item.product }}<br>
-                        {% endfor %}
-                    </td>
-                    <td>{{ order.total_price }}</td>
-                    <td><span class="badge confirmed">{{ order.status }}</span></td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="container" style="max-width: 1000px; margin: 0 auto;">
+
+        <div style="text-align: center; margin-bottom: 20px;">
+            <h1>🍰 Panel de Control En-Dulce</h1>
+            <a href="/admin/orders" class="nav-btn">🔄 Actualizar Pedidos</a>
+            <a href="/admin/menu" class="nav-btn" style="background: #2c3e50;">📋 Gestionar Menú</a>
+        </div>
+
+        <div class="card">
+            <h3>📦 Últimos Pedidos</h3>
+            <table class="primary">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Cliente</th>
+                        <th>Pedido</th>
+                        <th>Detalles (Sabor/Texto)</th>
+                        <th>Entrega</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in orders %}
+                    <tr>
+                        <td>{{ order.created_at.strftime('%d/%m %H:%M') }}</td>
+                        <td>
+                            <a href="https://wa.me/{{ order.user_phone }}" target="_blank">
+                                📱 {{ order.user_phone }}
+                            </a>
+                        </td>
+                        <td>
+                            {% for item in order.items %}
+                            <b>{{ item.quantity }}x</b> {{ item.product }}<br>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if order.items[0].get('modifiers') %}
+                            {% set mods = order.items[0].get('modifiers') %}
+                            {% if mods.flavor %}<span class="meta-info">🍦 {{ mods.flavor }}</span><br>{% endif %}
+                            {% if mods.dedication %}<span class="meta-info">✍️ "{{ mods.dedication }}"</span><br>{%
+                            endif %}
+                            {% else %}
+                            <span style="color:#ccc">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set delivery = order.items[0].get('delivery_info', {}) %}
+                            {% if delivery.method == 'delivery' %}
+                            <span class="badge" style="background: #e7f5ff; color: #0074d9;">🛵 Domicilio</span><br>
+                            <small>{{ delivery.address }}</small>
+                            {% elif delivery.method == 'pickup' %}
+                            <span class="badge" style="background: #eaffea; color: #2ecc40;">🏪 Retiro</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td><span class="badge confirmed">{{ order.status }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </body>
 
