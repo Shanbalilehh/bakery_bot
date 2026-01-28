@@ -10,7 +10,11 @@ class Settings(BaseSettings):
     # --- Optional / Default Fields ---
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
 
-    # --- Fix for the Crash ---
+    TWILIO_ACCOUNT_SID: str | None = None
+    TWILIO_AUTH_TOKEN: str | None = None
+    TWILIO_FROM_NUMBER: str | None = None
+    ADMIN_PHONE_NUMBER: str | None = None
+
     # We explicitly add these so Pydantic knows they exist in .env
     POSTGRES_USER: str | None = None
     POSTGRES_PASSWORD: str | None = None
@@ -19,7 +23,7 @@ class Settings(BaseSettings):
     # --- Configuration ---
     model_config = SettingsConfigDict(
         env_file=".env",
-        extra="ignore"  # CRITICAL: This tells Pydantic to ignore any other unknown variables in .env instead of crashing
+        extra="ignore"  
     )
 
 settings = Settings()
